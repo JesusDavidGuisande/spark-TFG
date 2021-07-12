@@ -1,0 +1,2 @@
+12/7/21
+Directrices iniciales del proyecto lanzamiento de spark contra 1 nodo con kubernetes y automatización.
