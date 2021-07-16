@@ -1,0 +1,11 @@
+Aplication: v1.0
+MiniKube:
+    cpus: 2
+    memory: 2g
+    driver: docker
+    profile: defecto
+    namespace: SparkSpace
+    mount:
+      -Host: /home/noname/Escritorio/kb/volume
+      -Cluster: /mnt/__data
+    nodes: 1
