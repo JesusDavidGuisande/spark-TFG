@@ -1,4 +1,6 @@
 import os
+import sys
+
 from parsers.jsoncontroller import JsonController
 import subprocess
 
@@ -85,29 +87,28 @@ class minikube:
     def start(self, dict):
 
         command = str('minikube start --driver=' + dict['driver'] +
-                      ' --cpus=' + dict['cpus'] + ' --memory=' + dict['memory'])
+                      ' --cpus=' + str(dict['cpus']) + ' --memory=' + dict['memory'])
         if 'namespace' in dict:
-            command += '--namespace '+ dict['namespace']
+            command += ' --namespace ' + dict['namespace']
+
+        if 'profile' in dict:
+            command += ' -p ' + dict['profile']
+
 
         #Mount a local directory in the cluster (not in the deploy of spark)
-        if 'moutn' in dict:
-            pid = os.fork()
-            if pid == 0:
-               self.__mount_volume(dict['mount']['Host'], dict['mount']['Cluster'])
-            else:
-                self.json.add_object('pid-mount', 'pid', pid)
         # try to start minikube
         try:
 
             # start minikube
-
-
             # if log_trace is asked for
             if self.log_trace:
 
                 # run command with trace
-                subprocess.call(command.split())
-
+                process_start = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                print(process_start.stdout.read().decode(sys.getdefaultencoding()))
+                print(process_start.stderr.read().decode(sys.getdefaultencoding()))
+                process_start.stdout.close()
+                process_start.stderr.close()
             # if log_trace is not asked for
             else:
 
@@ -121,10 +122,19 @@ class minikube:
             # raise error
             raise Exception('Starting Minikube failed')
 
-    # function to check the status
-    def __mount_volume(self, host_path, cluster_path):
+
+        if 'mount' in dict:
+            pid = os.fork()
+            if pid == 0:
+               self.__mount_volume(dict)
+            else:
+                self.json.add_object('pid-mount', 'pid', pid)
+
+    def __mount_volume(self, dict):
         try:
-            command = str('minikube mount ' + host_path + cluster_path)
+            command = str('minikube mount ' + dict['mount']['Host'] + ':' + dict['mount']['Cluster'])
+            if 'profile' in dict:
+                command += command + ' -p ' + dict['profile']
 
             if self.log_trace:
 

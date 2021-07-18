@@ -6,6 +6,6 @@ MiniKube:
     profile: defecto
     namespace: SparkSpace
     mount:
-      -Host: /home/noname/Escritorio/kb/volume
-      -Cluster: /mnt/__data
+      Host: /home/noname/Escritorio/kb/volume
+      Cluster: /mnt/data
     nodes: 1

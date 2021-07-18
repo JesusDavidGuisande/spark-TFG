@@ -23,16 +23,12 @@ if Debug:
     print(args)
 
 var = vars(args)
-mk = minikube(var.get('verbose'))
+mk = minikube(var.get('Verbose'))
 if var.get('File'):
     yaml = parser_yaml(var.get('File'))
-    #mk.start(yaml['MiniKube'])
-    json = JsonController()
-    json.add_object('pid-mount', 'pid', 12)
-    res = json.get_object('pid-mount')
-    print(res)
-    json.delete_object('pid-mount', 'pid')
-    print(json.get_object('pid-mount'))
+    print(yaml['MiniKube'])
+    print(yaml['MiniKube']['mount']['Host'])
+    mk.start(yaml['MiniKube'])
 
 if var.get('Cluster'):
     print('Adios')

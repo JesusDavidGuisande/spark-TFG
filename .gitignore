@@ -1,3 +1,5 @@
 /Aplicacion/venv/*
 */__pycache__/*
-*/.idea/
+*/.idea/*
+Aplicacion/minikube/__pycache__/*
+/Aplicacion/parsers/__pycache__/*
