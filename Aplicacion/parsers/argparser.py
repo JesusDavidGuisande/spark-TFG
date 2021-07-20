@@ -21,17 +21,12 @@ class argparser:
         #Minikube control
         parser_cluster = subparser.add_parser('cluster')
 
-        gp2e = parser_cluster.add_mutually_exclusive_group()
-        parser_cluster.add_argument('Cluster', type=str, help='Profile that references a cluster')
+        #parser_cluster.add_argument('Cluster', help='Profile that references a cluster')
 
-        gp2e.add_argument('-sp', '--Stop', action='store_true',
-                               help='Stops the currently running cluster ')
 
-        gp2e.add_argument('-st', '--Restart', action='store_true',
-                               help='Restart the cluster')
+        parser_cluster.add_argument('cluster', choices=('stop', 'restart', 'delete', 'pause', 'unpause'),
+                               help='Change the state of the cluster ', nargs='?')
 
-        gp2e.add_argument('-d', '--Delete', action='store_true',
-                               help='Stops and delete the cluster')
 
         #Free control
         my_parser.add_argument('-v', '--Verbose', action='store_true',

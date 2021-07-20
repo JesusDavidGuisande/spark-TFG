@@ -1,5 +1,6 @@
 /Aplicacion/venv/*
-*/__pycache__/*
 */.idea/*
+Aplicacion/spark_control/__pycache__/*
+Aplicacion/kubernetes_control/__pycache__/*
 Aplicacion/minikube/__pycache__/*
 /Aplicacion/parsers/__pycache__/*

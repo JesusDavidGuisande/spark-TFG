@@ -1,1 +1,2 @@
-pyyaml==3.10
+pyyaml==3.12
+kubernetes==17.17.0

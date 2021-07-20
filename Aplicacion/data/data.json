@@ -1,4 +1,11 @@
 {
-    "profiles": [],
-    "pid-mount": {}
+    "profiles": {
+        "profile": "defecto"
+    },
+    "pid-mount": {
+        "pid": 184631
+    },
+    "template-path": {
+        "path": "./templates/default-mk.yaml"
+    }
 }

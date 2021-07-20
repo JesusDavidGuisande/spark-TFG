@@ -8,4 +8,4 @@ MiniKube:
     mount:
       Host: /home/noname/Escritorio/kb/volume
       Cluster: /mnt/data
-    nodes: 1
+    nodes: 3

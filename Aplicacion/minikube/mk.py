@@ -84,16 +84,23 @@ class minikube:
             raise Exception('The following programs are not installed ' + ' '.join(not_installed_list))
 
     # function to start minikube
-    def start(self, dict):
+    def start(self, dict={}, restart=False):
+        if restart:
+            profile = self.json.get_object('profiles')
+            command = str('minikube start -p ' + profile['profile'])
+        else:
+            command = str('minikube start --driver=' + dict['driver'] +
+                          ' --cpus=' + str(dict['cpus']) + ' --memory=' + dict['memory'])
+            if 'namespace' in dict:
+                command += ' --namespace ' + dict['namespace']
 
-        command = str('minikube start --driver=' + dict['driver'] +
-                      ' --cpus=' + str(dict['cpus']) + ' --memory=' + dict['memory'])
-        if 'namespace' in dict:
-            command += ' --namespace ' + dict['namespace']
-
-        if 'profile' in dict:
-            command += ' -p ' + dict['profile']
-
+            if 'profile' in dict:
+                command += ' -p ' + dict['profile']
+                self.json.add_object('profiles', 'profile', dict['profile'])
+            else:
+                self.json.add_object('profiles', 'profile', 'default')
+            if 'nodes' in dict:
+                command += ' --nodes=' + str(dict['nodes'])
 
         #Mount a local directory in the cluster (not in the deploy of spark)
         # try to start minikube
@@ -122,7 +129,6 @@ class minikube:
             # raise error
             raise Exception('Starting Minikube failed')
 
-
         if 'mount' in dict:
             pid = os.fork()
             if pid == 0:
@@ -134,13 +140,12 @@ class minikube:
         try:
             command = str('minikube mount ' + dict['mount']['Host'] + ':' + dict['mount']['Cluster'])
             if 'profile' in dict:
-                command += command + ' -p ' + dict['profile']
+                command = command + ' -p ' + dict['profile']
 
             if self.log_trace:
-
                 # run command with trace
                 subprocess.call(command.split())
-
+                print()
             # if log_trace is not asked for
             else:
                 subprocess.call(command.split(), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
@@ -149,28 +154,30 @@ class minikube:
 
             raise Exception('The volume has not been mounted')
 
-    def stop(self):
+    def status(self, status):
 
-        # try to stop minikube
+        # try to apply new status changer minikube
         try:
 
-            # stop minikube
-            command = str('minikube stop')
-
+            # apply status minikube
+            profile = self.json.get_object('profiles')
+            command = str('minikube '+ status +' -p ' + profile['profile'])
+            #todo Recoger la stdout del comando en una variable para
+            # analizar el estado del cluster en el restart
             if self.log_trace:
 
                 # run command with trace
-                subprocess.call(command.split())
+                subprocess.run(command.split(), capture_output=True)
 
             # if log_trace is not asked for
             else:
-                subprocess.call(command.split(), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+                subprocess.call(command.split(), catpture_output=True)
 
         # return error if it doesn't work
         except:
 
             # raise error
-            raise Exception('I could not stop minikube')
+            raise Exception('Could not change status on minikube')
 
         # function to delete minikube
 
@@ -179,10 +186,11 @@ class minikube:
         # try to delete minikube
         try:
             # delete minikube
-            command = str('minikube delete')
-            pid = self.json.get_object('pid-mount')
-            killcmd = str('kill -9 ' + pid)
+            profile = self.json.get_object('profiles')
+            command = str('minikube delete -p ' + profile['profile'])
 
+            pid = self.json.get_object('pid-mount')
+            killcmd = str('kill -9 ' + str(pid['pid']))
             if self.log_trace:
                 subprocess.call(command.split())
 
@@ -193,7 +201,9 @@ class minikube:
 
                 subprocess.call(killcmd.split(), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 
-            self.json.delete_list_object('pid-mount', 'pid', pid)
+            self.json.delete_object('pid-mount', 'pid')
+            self.json.delete_object('profiles', 'profile')
+            self.json.delete_object('template-path', 'path')
 
         except:
 
