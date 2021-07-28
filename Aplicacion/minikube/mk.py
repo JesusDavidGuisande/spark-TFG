@@ -1,6 +1,9 @@
 import os
 import sys
+import time
 
+import yaml
+from kubernetes_control.kubernetes_control import *
 from parsers.jsoncontroller import JsonController
 import subprocess
 
@@ -102,7 +105,7 @@ class minikube:
             if 'nodes' in dict:
                 command += ' --nodes=' + str(dict['nodes'])
 
-        #Mount a local directory in the cluster (not in the deploy of spark)
+        # Mount a local directory in the cluster (not in the deploy of spark)
         # try to start minikube
         try:
 
@@ -128,14 +131,19 @@ class minikube:
 
             # raise error
             raise Exception('Starting Minikube failed')
-
+        #todo comprobar el lugar donde saltan las excepciones para que salgan bien
+        #Hacer que falle para que se imprima por pantalla algo descriptivo o
+        #se destruya el cluster
         if 'mount' in dict:
             pid = os.fork()
             if pid == 0:
-               self.__mount_volume(dict)
+                self.__mount_volume(dict)
             else:
                 self.json.add_object('pid-mount', 'pid', pid)
-
+        if 'persistent-volume' in dict:
+            time.sleep(5)
+            self.persistent_volume(dict)
+        rolebinding()
     def __mount_volume(self, dict):
         try:
             command = str('minikube mount ' + dict['mount']['Host'] + ':' + dict['mount']['Cluster'])
@@ -144,8 +152,17 @@ class minikube:
 
             if self.log_trace:
                 # run command with trace
-                subprocess.call(command.split())
-                print()
+                resultado = subprocess.Popen(command.split(),
+                                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+                res_string = str(resultado.stdout.read().decode(sys.getdefaultencoding()))
+                err_string = str(resultado.stderr.read().decode(sys.getdefaultencoding()))
+                resultado.stdout.close()
+                resultado.stderr.close()
+
+                print(res_string)
+                if err_string != '':
+                    raise Exception(err_string)
             # if log_trace is not asked for
             else:
                 subprocess.call(command.split(), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
@@ -154,6 +171,39 @@ class minikube:
 
             raise Exception('The volume has not been mounted')
 
+    def persistent_volume(self, dict):
+
+        doc = {}
+        try:
+            with open('./templates/volume.yaml') as f:
+                doc = yaml.load(f)
+
+            #Path used to mount a local directory on the cluster
+            doc['spec']['hostPath']['path'] = dict['mount']['Cluster']
+
+            if 'persistent-volume' in dict:
+                data = dict['persistent-volume']
+
+            if 'name' in data:
+                doc['metadata']['name'] = data['name']
+
+            if 'capacity' in data:
+                doc['spec']['capacity']['storage'] = data['capacity']
+
+            if 'accessModes' in data:
+                doc['spec']['accessModes'][0] = data['accessModes']
+
+            if 'storageClassName' in data:
+                doc['spec']['storageClassName'] = data['storageClassName']
+
+            with open('./templates/volume.yaml', 'w') as f:
+                yaml.dump(doc, f, default_flow_style=False)
+
+            apply_file('./templates/volume.yaml')
+
+        except Exception as e:
+            print(e)
+
     def status(self, status):
 
         # try to apply new status changer minikube
@@ -161,8 +211,8 @@ class minikube:
 
             # apply status minikube
             profile = self.json.get_object('profiles')
-            command = str('minikube '+ status +' -p ' + profile['profile'])
-            #todo Recoger la stdout del comando en una variable para
+            command = str('minikube ' + status + ' -p ' + profile['profile'])
+            # todo Recoger la stdout del comando en una variable para
             # analizar el estado del cluster en el restart
             if self.log_trace:
 
@@ -203,7 +253,6 @@ class minikube:
 
             self.json.delete_object('pid-mount', 'pid')
             self.json.delete_object('profiles', 'profile')
-            self.json.delete_object('template-path', 'path')
 
         except:
 

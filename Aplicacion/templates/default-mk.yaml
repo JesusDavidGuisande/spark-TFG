@@ -1,11 +1,18 @@
 Aplication: v1.0
 MiniKube:
     cpus: 2
-    memory: 2g
+    memory: 4g
     driver: docker
     profile: defecto
-    namespace: SparkSpace
+    #namespace: SparkSpace
+    nodes: 3
     mount:
       Host: /home/noname/Escritorio/kb/volume
       Cluster: /mnt/data
-    nodes: 3
+    #Optional
+    persistent-volume:
+      name: pv0001
+      accessModes: ReadWriteMany
+      capacity: 2Gi
+      storageClassName: auto
+

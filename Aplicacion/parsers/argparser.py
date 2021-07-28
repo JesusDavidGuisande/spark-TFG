@@ -5,8 +5,17 @@ class argparser:
     def __init__(self):
         my_parser = argparse.ArgumentParser(add_help=True,
                                             description='Automatization tool for minikube and Spark submit')
-        #Input files control
         subparser = my_parser.add_subparsers()
+        parser_test = subparser.add_parser('test')
+        parser_test.add_argument('test', type=str,
+                                  help='test')
+        #Config
+
+        parser_config = subparser.add_parser('config')
+        parser_config.add_argument('sparkHome', type=str,
+                                 help='Absolute path where is the spark home')
+        #Input files control
+
         parser_files = subparser.add_parser('file')
         parser_files.add_argument('File', type=str, help='Template with the Minikube and/or Spark submit config to deploy')
 
