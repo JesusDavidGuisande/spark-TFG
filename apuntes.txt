@@ -1,0 +1,36 @@
+
+login docker cli
+docker login -u=jesusdavidguisande --password=#Dato140498
+
+
+login de docker si el repositorio es privado
+cat ~/.docker/config.json
+kubectl create secret generic regcred \
+	--from-file=.dockerconfigjson=/home/noname/.docker/config.json \
+	--type=kubernetes.io/dockerconfigjson
+
+
+It looks like the default:default service account doesn't have edit permissions. You can run this to create the ClusterRoleBinding to add the permissions.
+kubectl create clusterrolebinding default \
+  --clusterrole=edit --serviceaccount=default:default --namespace=default
+
+kubectl create clusterrolebinding default \
+  --clusterrole=edit --serviceaccount=default:default --namespace=default
+
+mk mount /home/noname/Escritorio/kb/volume/:/mnt/data
+
+para usar los archivos en local hay que especificar el volumen para que el driver y los
+executors los lean, no es suficiente con que esten en el arbl de directorios del propio cluster
+tienen que declararse en spark
+
+!!!!!!!!!!!!!
+Hay que hacer un registro del volumen previamente sino kubernetes no trabaja
+
+lista de los clusteres que estan levantados se agrupan por perfiles de configuración
+mk profiles list
+
+#todo Revisar que funciona el submit con el rolebinding y probar java wordcounts
+#todo revisar checkpoitns por si quedan cosas sin hacer
+#todo implementar que el cluster ya este arrancado y solo se quiera enviar cosas de spark
+#todo implementar tecoger stdout y pasarla a fichero(Esta en el pod)
+#todo revisar ficheros antes de subir y mandar enlace al profe

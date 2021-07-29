@@ -1,0 +1,63 @@
+./spark-submit \
+--master k8s://https://192.168.49.2:8443 \
+--deploy-mode cluster \
+--name spark-pi \
+--conf spark.kubernetes.driver.volumes.hostPath.pv0001.mount.path=/mnt/data \
+--conf spark.kubernetes.driver.volumes.hostPath.pv0001.options.path=/mnt/data \
+--conf spark.kubernetes.executor.volumes.hostPath.pv0001.mount.path=/mnt/data \
+--conf spark.kubernetes.executor.volumes.hostPath.pv0001.options.path=/mnt/data \
+--class org.apache.spark.examples.SparkPi \
+--conf spark.executor.instances=1 \
+--conf spark.kubernetes.container.image=jesusdavidguisande/spark:spark-v10 \
+local:///mnt/data/spark-examples_2.12-3.1.2.jar
+
+
+https://github.com/JesusDavidGuisande/spark-jars/raw/master/spark-examples_2.12-3.1.2.jar
+
+
+local:///mnt/cluster/data/spark-examples_2.12-3.1.2.jar
+
+
+/home/noname/Escritorio/kb/spark/spark-3.1.2-bin-hadoop3.2/bin
+
+https://github.com/JesusDavidGuisande/spark-jars/raw/master/spark-examples_2.12-3.1.2.jar
+
+
+
+
+
+
+
+./spark-submit \
+--master k8s://https://https://192.168.49.2:8443 \
+--deploy-mode cluster \
+--name spark-pi \
+--class org.apache.spark.examples.JavaWordCount \
+--conf spark.executor.instances=1 \
+--conf spark.kubernetes.container.image=jesusdavidguisande/spark:spark-v10 \
+local:///mnt/cluster/data/spark-examples_2.12-3.1.2.jar \
+/mnt/cluster/data/listado-general.txt
+
+--conf spark.kubernetes.context=minikube \
+--conf spark.kubernetes.driver.volumes.hostPath.pv0001.mount.path=/mnt/data \
+--conf spark.kubernetes.driver.volumes.hostPath.pv0001.options.path=/mnt/data \
+--conf spark.kubernetes.executor.volumes.hostPath.pv0001.mount.path=/mnt/data \
+--conf spark.kubernetes.executor.volumes.hostPath.pv0001.options.path=/mnt/data \
+
+
+file://home/noname/Escritorio/kb/spark/spark-3.1.2-bin-hadoop3.2/examples/jars/spark-examples_2.12-3.1.2.jar
+
+
+
+--conf spark.eventLog.enabled=true \
+--conf spark.eventLog.dir=/home/noname/Escritorio/kb/logs \
+
+--conf spark.kubernetes.driver.volumes.hostPath.spark-local-dir-volume.mount.path=/tmp/data \
+--conf spark.kubernetes.driver.volumes.hostPath.spark-local-dir-volume.options.path=/work-dir/data \
+--conf spark.kubernetes.executor.volumes.hostPath.spark-local-dir-volume.mount.path=/tmp/data \
+--conf spark.kubernetes.executor.volumes.hostPath.spark-local-dir-volume.options.path=/work-dir/data \
+
+
+--conf spark.kubernetes.driver.volumes.persistentVolumeClaim.spark-local-dir-volume.options.localPath=/home/noname/Escritorio/kb/volume \
+
+--conf spark.kubernetes.driver.pod.name=spark-pi-driver \
