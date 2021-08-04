@@ -5,14 +5,15 @@ MiniKube:
     driver: docker
     profile: defecto
     #namespace: SparkSpace
-    nodes: 3
+    nodes: 1
+    #Pedir al usuario, diferentes
     mount:
-      Host: /home/noname/Escritorio/kb/volume
+      Host:
       Cluster: /mnt/data
     #Optional
     persistent-volume:
       name: pv0001
       accessModes: ReadWriteMany
       capacity: 2Gi
-      storageClassName: auto
+      storageClassName: manual
 

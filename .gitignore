@@ -1,7 +1,7 @@
-/Aplicacion/venv/*
+Sparky/venv/*
 */.idea/*
-Aplicacion/spark_control/__pycache__/*
-Aplicacion/kubernetes_control/__pycache__/*
-Aplicacion/minikube/__pycache__/*
-/Aplicacion/parsers/__pycache__/*
-Aplicacion/spark/__pycache__/*
+Sparky/spark_control/__pycache__/*
+Sparky/kubernetes_control/__pycache__/*
+Sparky/minikube/__pycache__/*
+Sparky/parsers/__pycache__/*
+Sparky/spark/__pycache__/*

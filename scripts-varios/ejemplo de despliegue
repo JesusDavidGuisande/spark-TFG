@@ -2,13 +2,11 @@
 --master k8s://https://192.168.49.2:8443 \
 --deploy-mode cluster \
 --name spark-pi \
---conf spark.kubernetes.driver.volumes.hostPath.pv0001.mount.path=/mnt/data \
---conf spark.kubernetes.driver.volumes.hostPath.pv0001.options.path=/mnt/data \
---conf spark.kubernetes.executor.volumes.hostPath.pv0001.mount.path=/mnt/data \
---conf spark.kubernetes.executor.volumes.hostPath.pv0001.options.path=/mnt/data \
 --class org.apache.spark.examples.SparkPi \
 --conf spark.executor.instances=1 \
 --conf spark.kubernetes.container.image=jesusdavidguisande/spark:spark-v10 \
+https://github.com/JesusDavidGuisande/spark-jars/raw/master/spark-examples_2.12-3.1.2.jar
+
 local:///mnt/data/spark-examples_2.12-3.1.2.jar
 
 
@@ -24,7 +22,10 @@ https://github.com/JesusDavidGuisande/spark-jars/raw/master/spark-examples_2.12-
 
 
 
-
+--conf spark.kubernetes.driver.volumes.hostPath.pv0001.mount.path=/mnt/data \
+--conf spark.kubernetes.driver.volumes.hostPath.pv0001.options.path=/mnt/data \
+--conf spark.kubernetes.executor.volumes.hostPath.pv0001.mount.path=/mnt/data \
+--conf spark.kubernetes.executor.volumes.hostPath.pv0001.options.path=/mnt/data \
 
 
 

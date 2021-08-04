@@ -1,15 +1,19 @@
 Spark:
-  deploy-mode: cluster
+  #codigo
   name: spark-job
   class: org.apache.spark.examples.SparkPi
   #Instancias de ejecucion que realizan el trabajo
+  #todo memoria cpus
   executor-instances: 1
+  #Opcional
   conf:
     - spark.kubernetes.context=minikube
-    - spark.executor.instances=1
   mount:
-    name: pv0001
-    path: /mnt/data
+    -
+     name: pv0001
+     local-path: /home/noname/Escritorio/kb/volume
+     cluster-path: /mnt/data
+
   image: jesusdavidguisande/spark:spark-v10
   jars:
       #local file etc.

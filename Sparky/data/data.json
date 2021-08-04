@@ -1,7 +1,8 @@
 {
     "profiles": {},
-    "pid-mount": {},
+    "pid-mount": [],
     "spark-home": {
         "path": "/home/noname/Escritorio/kb/spark/spark-3.1.2-bin-hadoop3.2"
-    }
+    },
+    "pid-dashboard": {}
 }

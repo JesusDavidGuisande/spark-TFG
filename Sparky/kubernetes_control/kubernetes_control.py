@@ -32,30 +32,23 @@ def apply_file(path):
     command = str('kubectl apply -f ')
     command += path
     print(command)
-    #todo ver si hay que meter esto dentro de un try catch
-    resultado = subprocess.Popen(command.split(),
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # todo ver si hay que meter esto dentro de un try catch
+    resultado = subprocess.Popen(command.split(), stderr=subprocess.PIPE)
 
-    res_string = str(resultado.stdout.read().decode(sys.getdefaultencoding()))
     err_string = str(resultado.stderr.read().decode(sys.getdefaultencoding()))
-    resultado.stdout.close()
     resultado.stderr.close()
-    if 'created' not in res_string and 'unchanged' not in res_string and err_string != '':
+    if err_string != '':
         raise Exception(err_string)
 
+
 def rolebinding():
-    command = str('kubectl create clusterrolebinding default \
-  --clusterrole=edit --serviceaccount=default:default --namespace=default')
+    command = str('kubectl create clusterrolebinding default --clusterrole=edit --serviceaccount=default:default --namespace=default')
+    print(command)
+    resultado = subprocess.Popen(command.split(), stderr=subprocess.PIPE)
 
-    resultado = subprocess.Popen(command.split(),
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    res_string = str(resultado.stdout.read().decode(sys.getdefaultencoding()))
     err_string = str(resultado.stderr.read().decode(sys.getdefaultencoding()))
-    resultado.stdout.close()
     resultado.stderr.close()
-    print(res_string)
+
     if err_string != '':
         print(err_string)
         raise Exception(err_string)
-
