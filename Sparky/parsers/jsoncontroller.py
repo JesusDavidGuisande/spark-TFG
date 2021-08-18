@@ -18,13 +18,13 @@ class JsonController:
         self.__reader()
         for i in range(len(self.__data[object])):
             if self.__data[object][i][property] == value:
-                self.__data[property].pop(i)
+                self.__data[object].pop(i)
                 self.__writer()
                 break
 
             else:
                 print('No encontrado')
-        print(self.__data)
+
 
     def add_list_object(self, object, property, value):
         self.__reader()

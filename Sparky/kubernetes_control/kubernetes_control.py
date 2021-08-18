@@ -42,7 +42,8 @@ def apply_file(path):
 
 
 def rolebinding():
-    command = str('kubectl create clusterrolebinding default --clusterrole=edit --serviceaccount=default:default --namespace=default')
+    command = str(
+        'kubectl create clusterrolebinding default --clusterrole=edit --serviceaccount=default:default --namespace=default')
     print(command)
     resultado = subprocess.Popen(command.split(), stderr=subprocess.PIPE)
 
@@ -52,3 +53,13 @@ def rolebinding():
     if err_string != '':
         print(err_string)
         raise Exception(err_string)
+
+
+def removePv(list):
+
+    for pv in list:
+        command = 'kubectl delete persistentvolume' + pv
+        try:
+            subprocess.Popen(command.split())
+        except Exception as e:
+            print(e)

@@ -4,7 +4,7 @@ class argparser:
 
     def __init__(self):
         my_parser = argparse.ArgumentParser(add_help=True,
-                                            description='Automatization tool for minikube and Spark submit')
+                                            description='Automatization tool for Minikube and Spark submit')
         subparser = my_parser.add_subparsers()
         parser_test = subparser.add_parser('test')
         parser_test.add_argument('test', type=str,

@@ -2,13 +2,8 @@ pyyaml==3.12
 
 
 
-        if 'mount' in dict:
-            pid = os.fork()
-            if pid == 0:
-                self.__mount_volume(dict)
-                exit(0)
-            else:
-                self.json.add_object('pid-mount', 'pid', pid)
-                time.sleep(15)
-        if 'persistent-volume' in dict:
-            self.persistent_volume(dict)
+    persistent-volume:
+      name: pv0001
+      accessModes: ReadWriteMany
+      capacity: 2Gi
+      storageClassName: manual

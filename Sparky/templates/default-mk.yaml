@@ -1,19 +1,10 @@
 Aplication: v1.0
 MiniKube:
-    cpus: 2
-    memory: 4g
-    driver: docker
+    cpus: 4
+    memory: 6g
+    driver: virtualbox
     profile: defecto
-    #namespace: SparkSpace
+    namespace: SparkSpace
     nodes: 1
-    #Pedir al usuario, diferentes
-    mount:
-      Host:
-      Cluster: /mnt/data
-    #Optional
-    persistent-volume:
-      name: pv0001
-      accessModes: ReadWriteMany
-      capacity: 2Gi
-      storageClassName: manual
+
 

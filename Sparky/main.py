@@ -1,7 +1,9 @@
+#!/usr/bin/python3
 import cmd
 import os
-from minikube.mk import minikube
-from spark.spark import spark
+
+from minikube.mk import Minikube
+from spark.spark import Spark
 from cmd import Cmd
 import yaml
 from parsers.jsoncontroller import JsonController
@@ -17,128 +19,102 @@ Debug = True
 
 
 class SparkyShell(cmd.Cmd):
-    Intro = " Type help or ? to list commands.\n"
-    prompt = "Sparky >"
+    Intro = "Escribe help o ? para listar los comandos.\n"
+    prompt = "Sparky> "
 
     def __init__(self):
         self.cmd = Cmd.__init__(self)
 
         self.json = JsonController()
         self.sparkHome = self.json.get_object('spark-home')
-        self.mk = minikube(True)
+        self.mk = Minikube(True)
+        self.sp = Spark(self.mk)
         if not self.sparkHome:
             raise Exception('First you need to get the path for spark')
 
-    # commands fro minikube
+    # commands fro Minikube
+    def do_setVorbosity(self, arg):
+        """Indica si la verbosidad esta activa o no, activa por defecto; {show, True, False}"""
+        if arg == 'show':
+            print(self.mk.get_log_trace())
+        elif arg == 'True' or arg == 'False':
+            self.mk.set_log_trace(arg)
+        else:
+            print('Argument not allowed')
 
     def do_mkStart(self, arg):
 
-        """Start the cluster with the configurations provided in a yaml template, if it is not provided,\n
-        a default one will be used"""
+        """Inicia el clúster con las configuraciones proporcionadas en una plantilla yaml, si no se proporciona, \n
+        se usará uno predeterminado"""
         if arg == '':
             yaml_template = parser_yaml('./templates/default-mk.yaml')
             mk_template = yaml_template['MiniKube']
         else:
-            yaml_template = parser_yaml(arg)
-            mk_template = yaml_template['MiniKube']
+            if os.path.exists(arg):
+                # todo checkear en start que se introduce un path valido ¿?
+                yaml_template = parser_yaml(arg)
+                mk_template = yaml_template['MiniKube']
+            else:
+                print('The path is invalid')
+        try:
+            self.mk.start(mk_template)
+        except Exception as e:
+            print(e)
 
-        self.mk.start(mk_template)
-
-    def do_mkDashboard(self, arg):
-        pid = os.fork()
-        if pid == 0:
-            self.mk.dashboard()
-            exit(0)
-        else:
-            self.json.add_object('pid-dashboard', 'pid', pid)
-
-    def do_mkApply_status(self, arg):
+    def do_mkApply_state(self, arg):
+        """Aplica un estado al cluster {stop, pause, unpause, status, restart}"""
         status = arg
-        print(status)
         try:
             if status == 'stop' or status == 'pause' \
                     or status == 'unpause' or status == 'status':
                 self.mk.status(status)
             elif status == 'restart':
-                self.mk.start(restart=True)
+                self.mk.start(dict=None, restart=True)
             else:
                 print('Not status allowed')
         except Exception as e:
             print(e)
 
     def do_mkDelete(self, arg):
-        """Stops and deletes the cluster that are running"""
+        """Detiene y borra el cluster que se encuentra en ejecución"""
         try:
+            self.sp.dump_volumes()
             self.mk.delete()
         except Exception as e:
             print(e)
 
+    def do_spSubmit(self, arg):
+        """Envia un trabajo de Spark al cluster """
+        print(arg)
+        if os.path.exists(arg):
+            try:
+                yaml_template = parser_yaml(arg)
+            except Exception as e:
+                print('Template error: ' + str(e))
+            try:
+
+                sp_template = yaml_template['Spark']
+                self.sp.submit(sp_template)
+
+            except Exception as e:
+                print('Submit execution error: ' + str(e))
+        else:
+            print('Invalid path to spark file')
+
+    def do_clean(self,arg):
+        """Limpia la pantalla"""
+        print('\n' * 10)
+
+
     def do_e(self, arg):
+        """Finaliza Sparky"""
         self.do_exit(arg)
 
     def do_exit(self, arg):
-        """Exits the program"""
+        """Finaliza Sparky """
         exit(0)
 
-#todo Probar el delete
-#todo Probar las salidas de los estados
-#todo verificar salida de un objeto json vacio
-#todo checkear en start que se introduce un path valido ¿?
+
 
 if __name__ == '__main__':
     SparkyShell().cmdloop()
-"""
-    if Debug:
-        print(args)
-    
-    var = vars(args)
-    
-    
-    
-    if var.get('sparkHome'):
-        j.add_object('spark-home', 'path', var.get('sparkHome'))
-        exit(0)
-    
-    if sparkHome:
-        print(sparkHome)
-        print(var)
-        if var.get('test'):
-            None
-    
-    
-        if var.get('File'):
-    
-            if var.get('fs'):
-    
-                spark_template = parser_yaml(var.get('File'))['Spark']
-    
-            else:
-                full_template = var.get('File')
-                mk_template = full_template['MiniKube']
-                spark_template = full_template['Spark']
-    
-            mk.start(mk_template)
-            time.sleep(20)
-            sp = spark(spark_template)
-            sp.submit()
-    
-    
-        if var.get('cluster'):
-            status = var.get('cluster')
-            print(status)
-    
-            if status == 'stop' or status == 'pause' \
-                    or status == 'unpause':
-                mk.status(status)
-    
-            elif status == 'restart':
-                mk.start(restart=True)
-    
-            elif status == 'delete':
-                print('Deleting...')
-                mk.delete()
-    
-    
-    else:
-        print('First you need to get the path for spark') 
-"""

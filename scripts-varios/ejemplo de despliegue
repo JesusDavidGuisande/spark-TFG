@@ -1,11 +1,27 @@
+kill -9 $(ps -a | grep -T minikube | awk '{print $1}')
+kill -9 $(ps -a | grep -T kubectl | awk '{print $1}')
+
+
 ./spark-submit \
 --master k8s://https://192.168.49.2:8443 \
 --deploy-mode cluster \
 --name spark-pi \
 --class org.apache.spark.examples.SparkPi \
 --conf spark.executor.instances=1 \
+--conf spark.kubernetes.context=minikube \
 --conf spark.kubernetes.container.image=jesusdavidguisande/spark:spark-v10 \
 https://github.com/JesusDavidGuisande/spark-jars/raw/master/spark-examples_2.12-3.1.2.jar
+local:///mnt/data/pv0001/spark-examples_2.12-3.1.2.jar
+
+
+
+--conf spark.kubernetes.driver.volumes.hostPath.pv0001.mount.path=/mnt/data/pv0001  \
+--conf spark.kubernetes.driver.volumes.hostPath.pv0001.options.path=/mnt/data/pv0001 \
+--conf spark.kubernetes.executor.volumes.hostPath.pv0001.mount.path=/mnt/data/pv0001 \
+--conf spark.kubernetes.executor.volumes.hostPath.pv0001.options.path=/mnt/data/pv0001 \
+
+
+
 
 local:///mnt/data/spark-examples_2.12-3.1.2.jar
 
