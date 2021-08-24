@@ -1,7 +1,7 @@
 import subprocess
 import sys
 import re
-from kubernetes import *
+import time
 
 ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
@@ -32,7 +32,6 @@ def apply_file(path):
     command = str('kubectl apply -f ')
     command += path
     print(command)
-    # todo ver si hay que meter esto dentro de un try catch
     resultado = subprocess.Popen(command.split(), stderr=subprocess.PIPE)
 
     err_string = str(resultado.stderr.read().decode(sys.getdefaultencoding()))
@@ -54,12 +53,28 @@ def rolebinding():
         print(err_string)
         raise Exception(err_string)
 
+def delete_volumes(name, profile):
+    command = 'kubectl delete persistentvolume ' + name + ' -p ' + profile
+    try:
+        subprocess.call(command)
+    except Exception as e:
+        print('Error trying to delete persistent volume: ' + name + '    ' + str(e))
 
-def removePv(list):
+def __current_timestamp():
+    secondsSinceEpoch = time.time()
+    timeObj = time.localtime(secondsSinceEpoch)
+    return str('%d-%d-%d %d:%d:%d' % (
+        timeObj.tm_mday, timeObj.tm_mon, timeObj.tm_year, timeObj.tm_hour, timeObj.tm_min, timeObj.tm_sec))
 
-    for pv in list:
-        command = 'kubectl delete persistentvolume' + pv
-        try:
-            subprocess.Popen(command.split())
-        except Exception as e:
-            print(e)
+def get_log():
+    command = str('kubectl logs sparky-driver')
+    try:
+        resultado = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+        std = resultado.stdout.read().decode(sys.getdefaultencoding())
+
+        file = open('./output/test-' + __current_timestamp() + '.txt', 'w')
+        file.write(std)
+        file.close()
+
+    except Exception as e:
+        print(e)

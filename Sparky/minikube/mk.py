@@ -1,32 +1,34 @@
 import glob
 import os
-import time
 
 import yaml
 from kubernetes_control.kubernetes_control import *
-from parsers.jsoncontroller import JsonController
 import subprocess
+from multiprocessing import Process
 
 
 class Minikube:
 
-    def __init__(self, trace):
+    def __init__(self, trace, json):
         # define the slots
         self.description = 'local kubernetes cluster'
         self.wd = os.getcwd()
         self.verbose = trace
         self.__check_installed()
-        self.json = JsonController()
+        self.json = json
         self.ncores = None
         self.memory = None
         self.isStarted = False
         self.profile = None
-    #Getter y setter de verbose
+        self.namespace = None
+        self.list_persistent_volume = []
+
+    # Getter y setter de verbose
     def get_log_trace(self):
         return self.verbose
 
     def set_log_trace(self, log):
-        self.verbose=log
+        self.verbose = log
 
     def get_profile(self):
         if self.profile is not None:
@@ -41,6 +43,12 @@ class Minikube:
 
     def get_memory(self):
         return self.memory
+
+    def get_namespace(self):
+        return self.namespace
+
+    def get_pv(self):
+        return self.list_persistent_volume
 
     def __check_installed(self):
         """Se comprueba que docker, virtualbox, minikube y kubernetes"""
@@ -105,8 +113,6 @@ class Minikube:
 
     # function to start Minikube
 
-
-
     def start(self, dict, restart=False):
         """Se define las opciones con las que se ejecuta el cluster de kubernetes en minikube"""
         if restart:
@@ -114,7 +120,6 @@ class Minikube:
             command = str('minikube start -p ' + profile)
         else:
             command = str('minikube start ')
-
 
             """Se define el perfil en el que se quiere operar el cluster"""
             if 'profile' in dict:
@@ -128,7 +133,8 @@ class Minikube:
             if 'driver' in dict:
                 command += '  --driver=' + dict['driver']
             else:
-                raise Exception('Obligatory parameter "driver" in minikube template ex. => driver: {docker, virtualbox}')
+                raise Exception(
+                    'Obligatory parameter "driver" in minikube template ex. => driver: {docker, virtualbox}')
 
             """Numero de cores asignados al cluster"""
             if 'cpus' in dict:
@@ -143,10 +149,6 @@ class Minikube:
                 self.memory = dict['memory']
             else:
                 raise Exception('Obligatory parameter "memory" in minikube template ex. => memory: 2g')
-
-            """Namespace personal del cluster"""
-            if 'namespace' in dict:
-                command += ' --namespace=' + dict['namespace']
 
             """Numero de nodos del cluster"""
             if 'nodes' in dict:
@@ -170,36 +172,38 @@ class Minikube:
         # return error if it doesn't work
         except Exception as e:
             print('Minikube cluster do not start \n' + str(e))
-        # todo comprobar el lugar donde saltan las excepciones para que salgan bien
 
         if not restart:
             rolebinding()
         self.isStarted = True
 
     def mount_volume(self, dict):
+        # todo comprobar que las rutas ya estan montadas o no en el cluster
+        proc = Process(target=self.__mount_volume, args=(dict,))
+        self.list_persistent_volume.append({'name':dict['name'], 'process': proc})
+        proc.start()
+
+    def __mount_volume(self, dict):
         """Funcion que permite montar un directorio del equipo local en el cluster de kubernetes
             se inicia en un nuevo proceso dado que necesita estar activo para el montaje y esto es bloqueante"""
-        pid = os.fork()
-        if pid == 0:
-            try:
-                command = str('minikube mount')
-                perfil = self.json.get_object('profiles')
-                command = command + ' -p ' + perfil['profile'] + ' '
-                command += dict['local-path'] + ':/mnt/data/' + dict['name']
+        try:
+            command = str('minikube mount')
+            # todo ver porque a veces falla este json
+            perfil = self.json.get_object('profiles')
+            command = command + ' -p ' + perfil['profile'] + ' '
+            command += dict['local-path'] + ':/mnt/data/' + dict['name']
 
-                if self.verbose:
-                    # run command with trace
-                    subprocess.call(command.split())
-                # if verbose is not asked for
-                else:
-                    subprocess.call(command.split(), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-                exit(0)
+            if self.verbose:
+                # run command with trace
+                subprocess.call(command.split())
+            # if verbose is not asked for
+            else:
+                subprocess.call(command.split(), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 
-            except Exception as e:
-                raise Exception('The volume has not been mounted \n' + str(e))
+            exit(0)
 
-        else:
-            self.json.add_list_object("pid-mount", "pid", pid)
+        except Exception as e:
+            exit('The volume has not been mounted \n' + str(e))
 
     def persistent_volume(self, dict):
         """Se crea un volumen persistente en el cluster con las indicaciones que se le facilitan
@@ -238,7 +242,6 @@ class Minikube:
                 print('Applying default options in the storageClassName attribute')
                 doc['spec']['storageClassName'] = 'manual'
 
-                # todo comprobar que creo los ficheros de los volumenes
             with open(output_file, 'w') as fw:
                 yaml.dump(doc, fw, default_flow_style=False)
 
@@ -287,7 +290,6 @@ class Minikube:
             except Exception as e:
                 print('Error ocurred when directory mout check: ' + str(e))
 
-
     def delete(self):
         """ Detencion y borrado del cluster, asi como el borrado de los pid de los procesos auxiliares"""
         # try to delete Minikube
@@ -296,52 +298,84 @@ class Minikube:
             profile = self.json.get_object('profiles')
             command = str('minikube delete -p ' + profile['profile'])
 
-            piddash = self.json.get_object('pid-dashboard')
-
-            if piddash != {}:
-                killdash = str('kill -9 ' + str(piddash['pid']))
-                self.json.delete_object('pid-dashboard', 'pid')
-
-            list_pid = self.json.get_object('pid-mount')
-
-
-            files = glob.glob('./templates/volumes/*')
-            for f in files:
-                os.remove(f)
-
+            self.clean_pv_mount('ALL')
             if self.verbose:
 
                 subprocess.call(command.split())
 
 
-                for line in list_pid:
-                    pid = line['pid']
-                    killcmd = str('kill -9 ' + str(pid))
-                    self.json.delete_list_object('pid-mount', 'pid', int(pid))
-                    try:
-                        subprocess.call(killcmd.split())
-                    except Exception as e:
-                        print(str(e))
-
-                if piddash != {}:
-                    subprocess.call(killdash.split())
             else:
 
                 subprocess.call(command.split(), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 
-                for line in list_pid:
-                    pid = line['pid']
-                    killcmd = str('kill -9 ' + str(pid))
-                    self.json.delete_list_object('pid-mount', 'pid', pid)
-                    try:
-                        subprocess.call(killcmd.split(), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-                    except Exception as e:
-                        print(str(e))
-
-                if piddash != {}:
-                    subprocess.call(killdash.split(), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-
             self.json.delete_object('profiles', 'profile')
+
+
 
         except Exception as e:
             print(e)
+
+
+
+
+
+    def clean_pv_mount(self, name):
+
+        def remove_files_volume(name):
+            files = glob.glob('./templates/volumes/' + name)
+            for f in files:
+                os.remove(f)
+
+        for idx, pv in enumerate(self.list_persistent_volume):
+            #Se eliminan todos los procesos que montan los directorios locales en el cluster
+            if name == 'ALL':
+                delete_volumes(name, self.profile)
+                remove_files_volume(name)
+                pv['process'].terminate()
+                self.list_persistent_volume.pop(idx)
+
+            #Se eliminan el proceso asociadoa a un volumen persistente que introduce el usuario
+            elif name == pv['name']:
+                delete_volumes(name, self.profile)
+                remove_files_volume(name)
+                pv['process'].terminate()
+                self.list_persistent_volume.pop(idx)
+
+
+
+
+
+
+"""
+    def clean_pv_mount(self, name):
+        def kill_process(pid):
+            killcmd = str('kill -9 ' + str(pid))
+            self.json.delete_list_object('pid-mount', 'pid', pid)
+            try:
+                if self.get_log_trace():
+                    subprocess.call(killcmd.split())
+                else:
+                    subprocess.call(killcmd.split(), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+            except Exception as e:
+                print('Error trying to umount ' + str(e))
+
+
+
+        list_pid = self.json.get_object('pid-mount')
+        if name == 'ALL':
+            remove_files_volume('*')
+            for line in list_pid:
+                delete_volumes(line['name'], self.profile)
+                pid = line['pid']
+                kill_process(pid)
+
+        else:
+            for line in list_pid:
+                if line['name'] == name:
+                    delete_volumes(name, self.profile)
+                    remove_files_volume(name)
+                    pid = line['pid']
+                    kill_process(pid)
+                else:
+                    continue
+    """

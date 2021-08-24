@@ -1,5 +1,6 @@
 Sparky/venv/*
 */.idea/*
 __pycache__/
-Sparky/templates/volumes
+Sparky/templates/volumes/*.yaml
 *.log
+output/*.txt

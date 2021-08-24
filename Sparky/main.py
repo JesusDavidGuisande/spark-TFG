@@ -7,6 +7,7 @@ from spark.spark import Spark
 from cmd import Cmd
 import yaml
 from parsers.jsoncontroller import JsonController
+from multiprocessing import Lock
 
 
 def parser_yaml(Path):
@@ -24,11 +25,11 @@ class SparkyShell(cmd.Cmd):
 
     def __init__(self):
         self.cmd = Cmd.__init__(self)
-
-        self.json = JsonController()
+        self.lock = Lock()
+        self.json = JsonController(self.lock)
         self.sparkHome = self.json.get_object('spark-home')
-        self.mk = Minikube(True)
-        self.sp = Spark(self.mk)
+        self.mk = Minikube(True, self.json)
+        self.sp = Spark(self.mk, None, self.json)
         if not self.sparkHome:
             raise Exception('First you need to get the path for spark')
 
@@ -51,7 +52,6 @@ class SparkyShell(cmd.Cmd):
             mk_template = yaml_template['MiniKube']
         else:
             if os.path.exists(arg):
-                # todo checkear en start que se introduce un path valido ¿?
                 yaml_template = parser_yaml(arg)
                 mk_template = yaml_template['MiniKube']
             else:
@@ -74,6 +74,14 @@ class SparkyShell(cmd.Cmd):
                 print('Not status allowed')
         except Exception as e:
             print(e)
+    def do_mkRemoveVolume(self, arg):
+        # todo
+        list = self.mk.get_pv()
+        if arg == 'show':
+            for pv in list:
+                print('Nombre: ' + pv['name'] + '   Process pid:' + pv['process'].pid)
+        else:
+            print(arg)
 
     def do_mkDelete(self, arg):
         """Detiene y borra el cluster que se encuentra en ejecución"""

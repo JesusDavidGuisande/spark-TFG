@@ -1,18 +1,31 @@
 import json
-
+from multiprocessing import Lock
 
 class JsonController:
-    def __init__(self):
+    def __init__(self, lock):
         self.__path_to_json = './data/data.json'
+        self.lock = lock
         self.__data = None
 
     def __reader(self):
-        with open(self.__path_to_json) as file:
-            self.__data = json.load(file)
+        self.lock.acquire()
+        try:
+            with open(self.__path_to_json) as file:
+                self.__data = json.load(file)
+        except Exception as e:
+            self.lock.release()
+            print('Json reader error:' + str(e))
+        self.lock.release()
 
     def __writer(self):
-        with open(self.__path_to_json, 'w') as file:
-            json.dump(self.__data, file, indent=4)
+        self.lock.acquire()
+        try:
+            with open(self.__path_to_json, 'w') as file:
+                json.dump(self.__data, file, indent=4)
+        except Exception as e:
+            self.lock.release()
+            print('Json writer error:' + str(e))
+        self.lock.release()
 
     def delete_list_object(self, object, property, value):
         self.__reader()
@@ -22,24 +35,15 @@ class JsonController:
                 self.__writer()
                 break
 
-            else:
-                print('No encontrado')
-
-
     def add_list_object(self, object, property, value):
+        dict = {}
+        for obj in zip(property, value):
+            dict[obj[0]] = obj[1]
         self.__reader()
-        self.__data[object].append({
-            property: value
-        })
+        self.__data[object].append(
+            dict
+        )
         self.__writer()
-
-        """"
-                por si en un futuro hay que añadir mas de una propiedad al json (no va bien)
-                for p, v in properties, values:
-                    self.__data[object].append({
-                        p: v
-                    })
-                """
 
     def add_object(self, object, property, value):
         self.__reader()
@@ -51,7 +55,6 @@ class JsonController:
         self.__data[object].pop(property)
         self.__writer()
 
-    def get_object(self,object):
+    def get_object(self, object):
         self.__reader()
         return self.__data[object]
-

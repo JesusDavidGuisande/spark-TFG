@@ -1,10 +1,9 @@
 Aplication: v1.0
 MiniKube:
     cpus: 4
-    memory: 6g
+    memory: 8g
     driver: virtualbox
     profile: defecto
-    namespace: SparkSpace
     nodes: 1
 
 
