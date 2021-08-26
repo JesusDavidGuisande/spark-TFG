@@ -179,9 +179,18 @@ class Minikube:
 
     def mount_volume(self, dict):
         # todo comprobar que las rutas ya estan montadas o no en el cluster
-        proc = Process(target=self.__mount_volume, args=(dict,))
-        self.list_persistent_volume.append({'name':dict['name'], 'process': proc})
-        proc.start()
+        def find(key, value, list):
+            rtr = False
+            for i in list:
+                if i[key] == value:
+                    rtr = True
+                    break
+            return rtr
+
+        if not find('name', dict['name'], self.list_persistent_volume):
+            proc = Process(target=self.__mount_volume, args=(dict,))
+            self.list_persistent_volume.append({'name': dict['name'], 'proc': proc})
+            proc.start()
 
     def __mount_volume(self, dict):
         """Funcion que permite montar un directorio del equipo local en el cluster de kubernetes
@@ -227,19 +236,19 @@ class Minikube:
             if 'capacity' in dict:
                 doc['spec']['capacity']['storage'] = dict['capacity']
             else:
-                print('Applying default options in the capacity attribute 2Gi')
+                print('Applying default options in the capacity attribute: 2Gi')
                 doc['spec']['capacity']['storage'] = '2Gi'
 
             if 'accessModes' in dict:
                 doc['spec']['accessModes'][0] = dict['accessModes']
             else:
-                print('Applying default options in the accessModes attribute ReadWriteMany')
+                print('Applying default options in the accessModes attribute: ReadWriteMany')
                 doc['spec']['accessModes'][0] = 'ReadWriteMany'
 
             if 'storageClassName' in dict:
                 doc['spec']['storageClassName'] = dict['storageClassName']
             else:
-                print('Applying default options in the storageClassName attribute')
+                print('Applying default options in the storageClassName attribute: manual')
                 doc['spec']['storageClassName'] = 'manual'
 
             with open(output_file, 'w') as fw:
@@ -273,16 +282,19 @@ class Minikube:
 
         # function to delete Minikube
 
+
     def check_directory_exist(self, directory):
         profile = self.get_profile()
-        cmd_check_dir_mount = str('minikube ssh -p ' + profile + ' "test -d ' + directory + ' && echo Existe"')
+        cmd_check_dir_mount = str('minikube ssh -p ' + profile + ' "test -d ' + directory + '" && echo Existe $$ exit')
         while True:
             try:
-                res = subprocess.Popen(cmd_check_dir_mount.split(), stdout=subprocess.PIPE)
+                res = subprocess.Popen(cmd_check_dir_mount, shell=True, stdout=subprocess.PIPE)
                 stdout_string = str(res.stdout.read().decode(sys.getdefaultencoding()))
                 res.stdout.close()
                 i = 0
-                if stdout_string == 'Existe' or i == 30:
+                if i == 10:
+                    raise Exception('Wait 20 secs for volume mount')
+                if 'Existe' in stdout_string:
                     break
                 else:
                     i += 1
@@ -297,8 +309,8 @@ class Minikube:
             # delete Minikube
             profile = self.json.get_object('profiles')
             command = str('minikube delete -p ' + profile['profile'])
-
             self.clean_pv_mount('ALL')
+            # self.clean_pv_mount('ALL')
             if self.verbose:
 
                 subprocess.call(command.split())
@@ -315,10 +327,6 @@ class Minikube:
         except Exception as e:
             print(e)
 
-
-
-
-
     def clean_pv_mount(self, name):
 
         def remove_files_volume(name):
@@ -326,56 +334,17 @@ class Minikube:
             for f in files:
                 os.remove(f)
 
-        for idx, pv in enumerate(self.list_persistent_volume):
-            #Se eliminan todos los procesos que montan los directorios locales en el cluster
+        for pv in self.list_persistent_volume[:]:
+            # Se eliminan todos los procesos que montan los directorios locales en el cluster
             if name == 'ALL':
-                delete_volumes(name, self.profile)
-                remove_files_volume(name)
-                pv['process'].terminate()
-                self.list_persistent_volume.pop(idx)
+                delete_volumes(pv['name'])
+                remove_files_volume(pv['name'])
+                pv['proc'].kill()
+                self.list_persistent_volume.remove(pv)
 
-            #Se eliminan el proceso asociadoa a un volumen persistente que introduce el usuario
+            # Se eliminan el proceso asociadoa a un volumen persistente que introduce el usuario
             elif name == pv['name']:
-                delete_volumes(name, self.profile)
+                delete_volumes(pv['name'])
                 remove_files_volume(name)
-                pv['process'].terminate()
-                self.list_persistent_volume.pop(idx)
-
-
-
-
-
-
-"""
-    def clean_pv_mount(self, name):
-        def kill_process(pid):
-            killcmd = str('kill -9 ' + str(pid))
-            self.json.delete_list_object('pid-mount', 'pid', pid)
-            try:
-                if self.get_log_trace():
-                    subprocess.call(killcmd.split())
-                else:
-                    subprocess.call(killcmd.split(), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-            except Exception as e:
-                print('Error trying to umount ' + str(e))
-
-
-
-        list_pid = self.json.get_object('pid-mount')
-        if name == 'ALL':
-            remove_files_volume('*')
-            for line in list_pid:
-                delete_volumes(line['name'], self.profile)
-                pid = line['pid']
-                kill_process(pid)
-
-        else:
-            for line in list_pid:
-                if line['name'] == name:
-                    delete_volumes(name, self.profile)
-                    remove_files_volume(name)
-                    pid = line['pid']
-                    kill_process(pid)
-                else:
-                    continue
-    """
+                pv['proc'].kill()
+                self.list_persistent_volume.remove(pv)

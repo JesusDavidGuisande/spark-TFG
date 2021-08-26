@@ -74,14 +74,16 @@ class SparkyShell(cmd.Cmd):
                 print('Not status allowed')
         except Exception as e:
             print(e)
-    def do_mkRemoveVolume(self, arg):
+
+    def do_mkVolume(self, arg):
         # todo
+        args = arg.split()
         list = self.mk.get_pv()
         if arg == 'show':
             for pv in list:
-                print('Nombre: ' + pv['name'] + '   Process pid:' + pv['process'].pid)
-        else:
-            print(arg)
+                print('Nombre: ' + pv['name'] + '   Process pid:' + str(pv['proc'].pid))
+        elif args[0] == 'remove':
+            self.mk.clean_pv_mount(args[1])
 
     def do_mkDelete(self, arg):
         """Detiene y borra el cluster que se encuentra en ejecución"""
@@ -109,10 +111,9 @@ class SparkyShell(cmd.Cmd):
         else:
             print('Invalid path to spark file')
 
-    def do_clean(self,arg):
+    def do_clean(self, arg):
         """Limpia la pantalla"""
         print('\n' * 10)
-
 
     def do_e(self, arg):
         """Finaliza Sparky"""
@@ -120,8 +121,8 @@ class SparkyShell(cmd.Cmd):
 
     def do_exit(self, arg):
         """Finaliza Sparky """
+        print('Exiting...')
         exit(0)
-
 
 
 if __name__ == '__main__':

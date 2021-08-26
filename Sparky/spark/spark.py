@@ -14,6 +14,7 @@ class Spark:
         self.json = json
         self.volumes = []
         self.cloud = cloud
+        self.index = 0
 
     def dump_volumes(self):
         self.volumes = []
@@ -28,7 +29,7 @@ class Spark:
         command += str('--deploy-mode cluster') + end
         command += str('--name ') + dict['name'] + end
         command += str('--class ') + dict['class'] + end
-        command += str('--conf spark.kubernetes.driver.pod.name=sparky-driver') + end
+        command += str('--conf spark.kubernetes.driver.pod.name=sparky-driver') + str(self.index) + end
 
         if 'executor-instances' in dict:
             nexec = dict['executor-instances']
@@ -71,25 +72,30 @@ class Spark:
                     self.volumes.append(pv['name'])
                     self.mk.mount_volume(pv)
                     time.sleep(5)
+                    self.mk.check_directory_exist('/mnt/data/'+pv['name'])
                     self.mk.persistent_volume(pv)
+                    time.sleep(5)
                     file = './templates/volumes/volume' + pv['name'] + '.yaml'
                     while True:
                         if os.path.exists(file):
                             break
                         else:
                             time.sleep(2)
-                    apply_file('./templates/volumes/volume' + pv['name'] + '.yaml')
+                    apply_file(file)
+                    check_volume(pv['name'])
+                    for place in ('driver', 'executor'):
+
+                        command += str('--conf spark.kubernetes.') + place + str('.volumes.hostPath.') + \
+                                   pv['name'] + str('.mount.path=') + '/mnt/data/' + pv['name'] + end
+
+                        command += str('--conf spark.kubernetes.') + place + str('.volumes.hostPath.') + \
+                                   pv['name'] + str('.options.path=') + '/mnt/data/' + pv['name'] + end
                 except Exception as e:
-                    pass
+                    self.mk.clean_pv_mount('ALL')
+                    print(e)
 
 
 
-            for place in ('driver', 'executor'):
-                command += str('--conf spark.kubernetes.') + place + str('.volumes.hostPath.') + \
-                           pv['name'] + str('.mount.path=') + '/mnt/data/' + pv['name'] + end
-
-                command += str('--conf spark.kubernetes.') + place + str('.volumes.hostPath.') + \
-                           pv['name'] + str('.options.path=') + '/mnt/data/' + pv['name'] + end
         if 'conf' in dict:
             for line in dict['conf']:
                 command += str('--conf ') + line + end
@@ -132,11 +138,12 @@ class Spark:
                 command += line + ' '
 
         print(command)
-        #todo borrar sleep
-        #time.sleep(20)
+        #todo borrar sleep; Esperar a que los volumenes esten montado en el cluster antes de que se ejecute el comando
+        time.sleep(20)
         try:
             subprocess.call(command.split())
-            get_log()
+            get_log(self.index)
+            self.index += 1
         except Exception as e:
             print(e)
 

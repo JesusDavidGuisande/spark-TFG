@@ -29,8 +29,3 @@ Hay que hacer un registro del volumen previamente sino kubernetes no trabaja
 lista de los clusteres que estan levantados se agrupan por perfiles de configuración
 mk profiles list
 
-#todo Revisar que funciona el submit con el rolebinding y probar java wordcounts
-#todo revisar checkpoitns por si quedan cosas sin hacer
-#todo implementar que el cluster ya este arrancado y solo se quiera enviar cosas de spark
-#todo implementar tecoger stdout y pasarla a fichero(Esta en el pod)
-#todo revisar ficheros antes de subir y mandar enlace al profe

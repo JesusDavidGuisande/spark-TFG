@@ -1,3 +1,4 @@
+from datetime import datetime
 import subprocess
 import sys
 import re
@@ -53,10 +54,10 @@ def rolebinding():
         print(err_string)
         raise Exception(err_string)
 
-def delete_volumes(name, profile):
-    command = 'kubectl delete persistentvolume ' + name + ' -p ' + profile
+def delete_volumes(name):
+    command = 'kubectl delete persistentvolume ' + name
     try:
-        subprocess.call(command)
+        subprocess.call(command.split())
     except Exception as e:
         print('Error trying to delete persistent volume: ' + name + '    ' + str(e))
 
@@ -66,13 +67,33 @@ def __current_timestamp():
     return str('%d-%d-%d %d:%d:%d' % (
         timeObj.tm_mday, timeObj.tm_mon, timeObj.tm_year, timeObj.tm_hour, timeObj.tm_min, timeObj.tm_sec))
 
-def get_log():
-    command = str('kubectl logs sparky-driver')
+def check_volume(nameVol):
+    command = "kubectl get pv " + nameVol
+    before = datetime.now()
+    timestampBefore = datetime.timestamp(before)
+    try:
+        while True:
+            resultado = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+            std = resultado.stdout.read().decode(sys.getdefaultencoding())
+            print(std)
+            if std.find('Available') != -1:
+                break
+            else:
+                after = datetime.now()
+                timestampAfter = datetime.timestamp(after)
+                if timestampAfter - timestampBefore >= 20:
+                    raise Exception('The persistentVolume '+ nameVol + ' is not available after 20 secs, please try again')
+
+    except Exception as e:
+        print(e)
+
+def get_log(index):
+    command = str('kubectl logs sparky-driver'+ str(index))
     try:
         resultado = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
         std = resultado.stdout.read().decode(sys.getdefaultencoding())
 
-        file = open('./output/test-' + __current_timestamp() + '.txt', 'w')
+        file = open('./output/sparky-driver'+ str(index) + '--' + __current_timestamp() + '.txt', 'w')
         file.write(std)
         file.close()
 
