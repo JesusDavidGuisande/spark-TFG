@@ -1,4 +1,3 @@
-import glob
 import os
 
 import yaml
@@ -174,11 +173,10 @@ class Minikube:
             print('Minikube cluster do not start \n' + str(e))
 
         if not restart:
-            rolebinding()
+            ServiceConfig()
         self.isStarted = True
 
     def mount_volume(self, dict):
-        # todo comprobar que las rutas ya estan montadas o no en el cluster
         def find(key, value, list):
             rtr = False
             for i in list:
@@ -255,7 +253,7 @@ class Minikube:
                 yaml.dump(doc, fw, default_flow_style=False)
 
         except Exception as e:
-            print(e)
+            print('Error building a volume template: ' + str(e))
 
     def status(self, status):
         """ Aplica un estado al cluster de los que permite minikube"""
@@ -282,7 +280,6 @@ class Minikube:
 
         # function to delete Minikube
 
-
     def check_directory_exist(self, directory):
         profile = self.get_profile()
         cmd_check_dir_mount = str('minikube ssh -p ' + profile + ' "test -d ' + directory + '" && echo Existe $$ exit')
@@ -308,9 +305,11 @@ class Minikube:
         try:
             # delete Minikube
             profile = self.json.get_object('profiles')
+            if not profile:
+                print('The cluster has already been deleted or does not exist')
+                return
             command = str('minikube delete -p ' + profile['profile'])
             self.clean_pv_mount('ALL')
-            # self.clean_pv_mount('ALL')
             if self.verbose:
 
                 subprocess.call(command.split())
@@ -328,23 +327,20 @@ class Minikube:
             print(e)
 
     def clean_pv_mount(self, name):
-
-        def remove_files_volume(name):
-            files = glob.glob('./templates/volumes/' + name)
-            for f in files:
-                os.remove(f)
+        basePath = './templates/volumes/'
+        files = os.listdir(basePath)
+        for f in files:
+            os.remove(basePath + f)
 
         for pv in self.list_persistent_volume[:]:
             # Se eliminan todos los procesos que montan los directorios locales en el cluster
             if name == 'ALL':
                 delete_volumes(pv['name'])
-                remove_files_volume(pv['name'])
                 pv['proc'].kill()
                 self.list_persistent_volume.remove(pv)
 
-            # Se eliminan el proceso asociadoa a un volumen persistente que introduce el usuario
+            # Se eliminan el proceso asociado a un volumen persistente que introduce el usuario
             elif name == pv['name']:
                 delete_volumes(pv['name'])
-                remove_files_volume(name)
                 pv['proc'].kill()
                 self.list_persistent_volume.remove(pv)

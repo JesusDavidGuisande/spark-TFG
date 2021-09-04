@@ -4,6 +4,7 @@ import os
 
 from minikube.mk import Minikube
 from spark.spark import Spark
+from azure.az import Azure
 from cmd import Cmd
 import yaml
 from parsers.jsoncontroller import JsonController
@@ -29,7 +30,9 @@ class SparkyShell(cmd.Cmd):
         self.json = JsonController(self.lock)
         self.sparkHome = self.json.get_object('spark-home')
         self.mk = Minikube(True, self.json)
-        self.sp = Spark(self.mk, None, self.json)
+        self.sp = None
+        self.az = Azure(True, self.json)
+        # todo ajustar la verbosidad a nivel global
         if not self.sparkHome:
             raise Exception('First you need to get the path for spark')
 
@@ -47,6 +50,7 @@ class SparkyShell(cmd.Cmd):
 
         """Inicia el clúster con las configuraciones proporcionadas en una plantilla yaml, si no se proporciona, \n
         se usará uno predeterminado"""
+        self.sp = Spark(self.mk, self.json)
         if arg == '':
             yaml_template = parser_yaml('./templates/default-mk.yaml')
             mk_template = yaml_template['MiniKube']
@@ -111,6 +115,49 @@ class SparkyShell(cmd.Cmd):
         else:
             print('Invalid path to spark file')
 
+
+    def do_azStart(self, arg):
+        """Configura Azure-cli en el equipo """
+        print('MAKE SURE YOU LOGIN FIRST IN AZURE-CLI  "az login" ')
+        print()
+
+        subs = self.json.get_object('subscription')
+        if not subs:
+            subs = input('Enter subscription id:  ')
+            self.json.add_object('subscription', 'subs', subs)
+        else:
+            subs = subs['subs']
+
+        resG = self.json.get_object('resource-group')
+        if not resG:
+            resG = input('Enter resource group:  ')
+            self.json.add_object('resource-group', 'resg', resG)
+        else:
+            resG = resG['resg']
+
+        name = self.json.get_object('cluster-name')
+        if not name:
+            name = input('Enter cluster name:  ')
+            self.json.add_object('cluster-name', 'name', name)
+        else:
+            name = name['name']
+
+        self.az.start(str(subs), str(resG), str(name))
+        self.sp = Spark(self.az, self.json)
+    #todo funcion de borrado de datos del cluster aks en data.json
+
+    def do_azStorageConfig(self, arg):
+        """Storage configuration with azure storage account
+        create storage-name container-name
+        upload container-name file-path blob-name"""
+        arg = arg.split()
+        self.az.storage_config(arg)
+
+    def do_azClean(self):
+        """Clean the credentials of the cluster"""
+        self.json.delete_object('subscription', 'subs')
+        self.json.delete_object('resource-group', 'resg')
+        self.json.delete_object('luster-name', 'name')
     def do_clean(self, arg):
         """Limpia la pantalla"""
         print('\n' * 10)

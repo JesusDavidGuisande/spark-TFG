@@ -1,6 +1,7 @@
 Spark:
   #codigo
   name: spark-job
+  #pod-name: nombre
   class: org.apache.spark.examples.JavaWordCount
   #Instancias de ejecucion que realizan el trabajo
   driver-conf:
@@ -16,17 +17,18 @@ Spark:
     - spark.kubernetes.context=minikube
 
   mount:
-    - name: pv0001
-      local-path: /home/noname/Escritorio/kb/pruebas
-      accessModes: ReadWriteMany
-      capacity: 2Gi
-      storageClassName: manual
+    minikube:
+      - name: pv0001
+        local-path: /home/noname/Escritorio/kb/pruebas
+        accessModes: ReadWriteMany
+        capacity: 2Gi
+        storageClassName: nfs-volume
 
-    - name: pv0002
-      local-path: /home/noname/Escritorio/kb/volume1
-      accessModes: ReadWriteMany
-      capacity: 2Gi
-      storageClassName: manual
+      - name: pv0002
+        local-path: /home/noname/Escritorio/kb/volume1
+        accessModes: ReadWriteMany
+        capacity: 2Gi
+        storageClassName: manual
 
   image:
     image: jesusdavidguisande/spark:spark-v10
@@ -38,5 +40,4 @@ Spark:
       #solo se especifica la ruta a partir del nombre del volumen
     path: pv0001/spark-examples_2.12-3.1.2.jar
   input-args:
-  #todo Especificar volumen y ruta relativa a partir de el
-   - /mnt/data/pv0002/Nuevo.txt
+   - pv0002/Nuevo.txt

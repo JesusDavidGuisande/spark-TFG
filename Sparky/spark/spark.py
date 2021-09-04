@@ -8,12 +8,11 @@ import os
 
 class Spark:
 
-    def __init__(self, minikube, cloud, json):
+    def __init__(self, service, json):
         self.dict = None
-        self.mk = minikube
+        self.service = service
         self.json = json
         self.volumes = []
-        self.cloud = cloud
         self.index = 0
 
     def dump_volumes(self):
@@ -29,10 +28,17 @@ class Spark:
         command += str('--deploy-mode cluster') + end
         command += str('--name ') + dict['name'] + end
         command += str('--class ') + dict['class'] + end
-        command += str('--conf spark.kubernetes.driver.pod.name=sparky-driver') + str(self.index) + end
+        command += str('--conf spark.kubernetes.authenticate.driver.serviceAccountName=spark') +end
+        if 'pod-name' in dict:
+            name = dict['pod-name']
+            command += str('--conf spark.kubernetes.driver.pod.name=' + name) + end
+        else:
+            name = 'sparky-driver'
+            name += str(self.index)
+            self.index += 1
+            command += str('--conf spark.kubernetes.driver.pod.name=' + name) + end
 
         if 'executor-instances' in dict:
-            nexec = dict['executor-instances']
             command += str('--conf spark.executor.instances=') + str(dict['executor-instances']) + end
         else:
             raise Exception('Obligatory parameter "executor-instances" in spark template ex. => executor-instances: 2')
@@ -62,39 +68,35 @@ class Spark:
                 raise Exception('Obligatory parameter "executor-memory" inside optional parameter "executor-conf" in '
                                 'spark template ex.=> executor-memory: 1g')
 
-
-
-
-
         if 'mount' in dict:
-            for pv in dict['mount']:
-                try:
-                    self.volumes.append(pv['name'])
-                    self.mk.mount_volume(pv)
-                    time.sleep(5)
-                    self.mk.check_directory_exist('/mnt/data/'+pv['name'])
-                    self.mk.persistent_volume(pv)
-                    time.sleep(5)
-                    file = './templates/volumes/volume' + pv['name'] + '.yaml'
-                    while True:
-                        if os.path.exists(file):
-                            break
-                        else:
-                            time.sleep(2)
-                    apply_file(file)
-                    check_volume(pv['name'])
-                    for place in ('driver', 'executor'):
+            if 'minikube' in dict['mount']:
+                for pv in dict['mount']['minikube']:
+                    try:
+                        self.volumes.append(pv['name'])
+                        self.service.mount_volume(pv)
+                        self.service.check_directory_exist('/mnt/data/' + pv['name'])
+                        self.service.persistent_volume(pv)
+                        file = './templates/volumes/volume' + pv['name'] + '.yaml'
+                        while True:
+                            if os.path.exists(file):
+                                break
+                            else:
+                                time.sleep(2)
 
-                        command += str('--conf spark.kubernetes.') + place + str('.volumes.hostPath.') + \
-                                   pv['name'] + str('.mount.path=') + '/mnt/data/' + pv['name'] + end
+                        apply_file(file)
+                        check_volume(pv['name'])
+                        for place in ('driver', 'executor'):
+                            command += str('--conf spark.kubernetes.') + place + str('.volumes.hostPath.') + \
+                                       pv['name'] + str('.mount.path=') + '/mnt/data/' + pv['name'] + end
 
-                        command += str('--conf spark.kubernetes.') + place + str('.volumes.hostPath.') + \
-                                   pv['name'] + str('.options.path=') + '/mnt/data/' + pv['name'] + end
-                except Exception as e:
-                    self.mk.clean_pv_mount('ALL')
-                    print(e)
+                            command += str('--conf spark.kubernetes.') + place + str('.volumes.hostPath.') + \
+                                       pv['name'] + str('.options.path=') + '/mnt/data/' + pv['name'] + end
+                    except Exception as e:
+                        self.service.clean_pv_mount('ALL')
+                        print(e)
 
-
+            elif 'cloud' in dict['mount']:
+                pass
 
         if 'conf' in dict:
             for line in dict['conf']:
@@ -116,11 +118,16 @@ class Spark:
                                 'ex => image: repor/image:tag  or version: tag')
         if 'jars' in dict:
             if 'mode' in dict['jars']:
-                if 'path' in dict['jars']:
+                if dict['jars']['mode'] == 'azContainer':
+                    """Modo exclusivo para la nube de azure"""
+                    jarsUrl = self.service.getUrlBlob(dict['jars']['storage'], dict['jars']['container'], dict['jars']['name'])
+                    command += jarsUrl + end
+
+                elif 'path' in dict['jars']:
 
                     if dict['jars']['mode'] == 'local':
                         command += dict['jars']['mode'] + ':///mnt/data/' + dict['jars']['path']
-                    else :
+                    else:
                         command += dict['jars']['mode'] + '://' + dict['jars']['path']
                 else:
                     raise Exception('Obligatory parameter "path" inside obligatory parameter "jars" '
@@ -131,19 +138,23 @@ class Spark:
         else:
             raise Exception('Obligatory paramter "jars" in spark template')
 
-
         if 'input-args' in dict:
-            command += end
-            for line in dict['input-args']:
-                command += line + ' '
+            if 'mode' in dict['input-args']:
+                args = self.service.getUrlBlob(dict['input-args']['container'], dict['input-args']['name'])
+                command += args + ' '
+
+            else:
+                command += end
+                for line in dict['input-args']:
+                    command += '/mnt/data/' + line + ' '
 
         print(command)
-        #todo borrar sleep; Esperar a que los volumenes esten montado en el cluster antes de que se ejecute el comando
-        time.sleep(20)
         try:
             subprocess.call(command.split())
-            get_log(self.index)
-            self.index += 1
+            get_log(name)
         except Exception as e:
             print(e)
-
+        except KeyboardInterrupt:
+            delete_pod(name)
+            self.service.clean_pv_mount('ALL')
+            print('Spark submit stopped by user   ')

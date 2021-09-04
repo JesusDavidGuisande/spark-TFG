@@ -1,0 +1,29 @@
+Spark:
+  #codigo
+  name: spark-job
+  #pod-name: nombre
+  #class: org.apache.spark.examples.JavaWordCount
+  class: org.apache.spark.examples.SparkPi
+  #Instancias de ejecucion que realizan el trabajo
+  driver-conf:
+    driver-cpus: 1
+    driver-memory: 500m
+  executor-instances: 2
+  #No es necesario se aplicaran opciones por defecto si el usuario no las especifica
+  executor-conf:
+    executor-cpus: 1
+    executor-memory: 500m
+
+  image:
+    image: jesusdavidguisande/spark:spark-v10
+
+  jars:
+    mode: azContainer
+    storage: sparkystorage
+    container: spcontainer
+    name: jars
+
+  #input-args:
+  #  mode: azContainer
+  #  container: sparky-container
+  #  name: txt
