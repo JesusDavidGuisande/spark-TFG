@@ -1,0 +1,23 @@
+Instalar apache spark
+instalar kubectl
+Instalar minikube
+Instalar docker con script
+Instalar virtualBox (problemas con las dependencias instalar con comandos, no
+con paquete deb)
+
+./bin/docker-image-tool.sh -r <repo> -t my-tag -p ./kubernetes/dockerfiles/spark/bindings/python/Dockerfile build
+
+
+https://minikube.sigs.k8s.io/docs/start/
+https://kubernetes.io/es/docs/tasks/tools/install-kubectl/
+
+
+#ArrancarCluster
+minikube start
+
+#ver cluster
+kubectl get service 
+
+#Ver servicios desplegados
+kubectl get [pods, service]
+

@@ -80,7 +80,7 @@ class SparkyShell(cmd.Cmd):
             print(e)
 
     def do_mkVolume(self, arg):
-        # todo
+        """Permite la visualizacion y borrado de los volumenes que son se encuentran activos en minikube"""
         args = arg.split()
         list = self.mk.get_pv()
         if arg == 'show':
@@ -158,6 +158,7 @@ class SparkyShell(cmd.Cmd):
         self.json.delete_object('subscription', 'subs')
         self.json.delete_object('resource-group', 'resg')
         self.json.delete_object('luster-name', 'name')
+
     def do_clean(self, arg):
         """Limpia la pantalla"""
         print('\n' * 10)

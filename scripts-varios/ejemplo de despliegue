@@ -7,18 +7,20 @@ kill -9 $(ps -a | grep -T kubectl | awk '{print $1}')
 --deploy-mode cluster \
 --name spark-pi \
 --class org.apache.spark.examples.SparkPi \
---conf spark.executor.instances=1 \
---conf spark.kubernetes.context=minikube \
+--conf spark.kubernetes.driver.pod.name=spark-pi-driver \
+--conf spark.executor.instances=2 \
+--conf spark.kubernetes.authenticate.driver.serviceAccountName=spark \
 --conf spark.kubernetes.container.image=jesusdavidguisande/spark:spark-v10 \
+
 https://github.com/JesusDavidGuisande/spark-jars/raw/master/spark-examples_2.12-3.1.2.jar
+
+https://github.com/JesusDavidGuisande/spark-jars/raw/master/spark-examples_2.12-3.1.2.jar
+
 local:///mnt/data/pv0001/spark-examples_2.12-3.1.2.jar
 
 
 
---conf spark.kubernetes.driver.volumes.hostPath.pv0001.mount.path=/mnt/data/pv0001  \
---conf spark.kubernetes.driver.volumes.hostPath.pv0001.options.path=/mnt/data/pv0001 \
---conf spark.kubernetes.executor.volumes.hostPath.pv0001.mount.path=/mnt/data/pv0001 \
---conf spark.kubernetes.executor.volumes.hostPath.pv0001.options.path=/mnt/data/pv0001 \
+
 
 
 
@@ -26,7 +28,7 @@ local:///mnt/data/pv0001/spark-examples_2.12-3.1.2.jar
 local:///mnt/data/spark-examples_2.12-3.1.2.jar
 
 
-https://github.com/JesusDavidGuisande/spark-jars/raw/master/spark-examples_2.12-3.1.2.jar
+
 
 
 local:///mnt/cluster/data/spark-examples_2.12-3.1.2.jar
@@ -46,17 +48,22 @@ https://github.com/JesusDavidGuisande/spark-jars/raw/master/spark-examples_2.12-
 
 
 ./spark-submit \
---master k8s://https://https://192.168.49.2:8443 \
+--master k8s://https://192.168.99.160:8443 \
 --deploy-mode cluster \
 --name spark-pi \
 --class org.apache.spark.examples.JavaWordCount \
+--conf spark.kubernetes.authenticate.driver.serviceAcountName=spark \
 --conf spark.executor.instances=1 \
 --conf spark.kubernetes.container.image=jesusdavidguisande/spark:spark-v10 \
-local:///mnt/cluster/data/spark-examples_2.12-3.1.2.jar \
-/mnt/cluster/data/listado-general.txt
+--conf spark.kubernetes.driver.volumes.hostPath.pv0001.mount.path=/mnt/data \
+--conf spark.kubernetes.driver.volumes.hostPath.pv0001.options.path=/mnt/data \
+--conf spark.kubernetes.executor.volumes.hostPath.pv0001.mount.path=/mnt/data \
+--conf spark.kubernetes.executor.volumes.hostPath.pv0001.options.path=/mnt/data \
+local:///mnt/data/spark-examples_2.12-3.1.2.jar \
+/mnt/data/listado-general.txt
 
 --conf spark.kubernetes.context=minikube \
---conf spark.kubernetes.driver.volumes.hostPath.pv0001.mount.path=/mnt/data \
+--conf spark.kubernetes.driver.volumes.hostPath.pv0001.mount.path=/mnt/data/ \
 --conf spark.kubernetes.driver.volumes.hostPath.pv0001.options.path=/mnt/data \
 --conf spark.kubernetes.executor.volumes.hostPath.pv0001.mount.path=/mnt/data \
 --conf spark.kubernetes.executor.volumes.hostPath.pv0001.options.path=/mnt/data \

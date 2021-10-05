@@ -17,7 +17,7 @@ kubectl create clusterrolebinding default \
 kubectl create clusterrolebinding default \
   --clusterrole=edit --serviceaccount=default:default --namespace=default
 
-mk mount /home/noname/Escritorio/kb/volume/:/mnt/data
+mk mount /home/noname/Escritorio/kb/volume1/:/mnt/data
 
 para usar los archivos en local hay que especificar el volumen para que el driver y los
 executors los lean, no es suficiente con que esten en el arbl de directorios del propio cluster
